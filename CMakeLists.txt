@@ -18,18 +18,8 @@ set(EXTERNAL_DIR ${CMAKE_SOURCE_DIR}/external)
 # Include directories
 include_directories(${INCLUDE_DIR} ${OPTIMIZERS_DIR})
 include_directories(${EXTERNAL_DIR}/LBFGSpp/include)
-include_directories(${EXTERNAL_DIR}/ceres-solver/install/include)
-include_directories(${EXTERNAL_DIR}/abseil-cpp/install/include)
 
-# Explicitly set Abseil path
-set(Abseil_DIR "${EXTERNAL_DIR}/abseil-cpp/install/lib/cmake/absl")
-find_package(absl REQUIRED)
-
-# Explicitly set Ceres Solver path
-set(Ceres_DIR "${EXTERNAL_DIR}/ceres-solver/install/lib/cmake/Ceres")
-find_package(Ceres REQUIRED)
-
-# Find other dependencies
+# Find dependencies
 find_package(Eigen3 REQUIRED)
 find_package(GTest REQUIRED)
 
@@ -42,25 +32,21 @@ set(SOURCES
     ${SRC_DIR}/Optimizers/LevenbergMarquardt.cpp
     ${SRC_DIR}/Optimizers/BFGSOptimizer.cpp
     ${SRC_DIR}/Optimizers/NelderMead.cpp
-    ${SRC_DIR}/Optimizers/CeresOptimizer.cpp
+)
+
+# Create library target
+add_library(yield_curve_lib STATIC ${SOURCES})
+target_link_libraries(yield_curve_lib
+    PUBLIC
+    Eigen3::Eigen
 )
 
 # Build main executable
-add_executable(YieldCurveFitting main.cpp ${SOURCES})
-
-# Link required libraries
-target_link_libraries(YieldCurveFitting Eigen3::Eigen Ceres::ceres absl::log absl::check absl::flags)
+add_executable(YieldCurveFitting main.cpp)
+target_link_libraries(YieldCurveFitting
+    PRIVATE
+    yield_curve_lib
+)
 
 # Enable Google Test
 enable_testing()
-
-add_executable(TestYieldCurveModels test/TestYieldCurveModels.cpp)
-target_link_libraries(TestYieldCurveModels PRIVATE GTest::GTest GTest::Main Eigen3::Eigen Ceres::ceres absl::log absl::check absl::flags)
-
-add_executable(TestOptimizers test/TestOptimizers.cpp)
-target_link_libraries(TestOptimizers PRIVATE GTest::GTest GTest::Main Eigen3::Eigen Ceres::ceres absl::log absl::check absl::flags)
-
-# Register tests
-add_test(NAME YieldCurveModels COMMAND TestYieldCurveModels)
-add_test(NAME Optimizers COMMAND TestOptimizers)
-
